@@ -302,8 +302,7 @@ final_df.write.mode("overwrite").saveAsTable(
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC select * from bricksquad.gold.ai_business_insights;
+spark.sql("select * from bricksquad.gold.ai_business_insights").show()
 
 # COMMAND ----------
 
