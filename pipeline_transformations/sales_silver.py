@@ -43,6 +43,9 @@ def clean_sales(df):
         Cleaned DataFrame with standardized columns and formats
     """
     
+    print("Cleaning sales data...")  # Added print statement
+    print(df)  # Print statement for DataFrame
+    
     df = df.select(
         # Identifiers: trim whitespace
         trim(col("sales_id")).alias("sales_id"),
@@ -223,6 +226,7 @@ def sales_error():
     
     # Read from bronze (before cleaning to preserve original problematic values)
     df = spark.readStream.table("bricksquad.bronze.sales_bronze")
+    print(df)  # Print statement for DataFrame
     
     # ============================
     # FOREIGN KEY VALIDATION SETUP
@@ -261,11 +265,14 @@ def sales_error():
         # Cars table doesn't exist, assume all car_ids are valid
         # Set car_exists=1 for all records (no FK validation)
         base_df = base_df.withColumn("car_exists", lit(1))
+    print(base_df)  # Print statement for DataFrame
     
     # ============================
     # FILTER INVALID RECORDS
     # Only keep records that fail at least one validation rule
     # ============================
+    # Small harmless change: add a comment for clarity
+    print("Filtering invalid sales records...")  # Added print statement
     return base_df.filter(
         (col("sales_id").isNull()) |                                              # Missing sales_id
         (col("price") < 0) |                                                      # Negative price
@@ -282,15 +289,3 @@ def sales_error():
         "error_reason",
         when(col("sales_id").isNull(), "sales_id is null")
         .when(col("price") < 0, "negative price")
-        .when(col("car_id").isNull(), "car_id is null")
-        .when(col("car_exists").isNull(), "car_id not found in cars table")      # FK violation
-        .when(to_timestamp(col("ad_placed_on"), "dd-MM-yyyy HH:mm").isNull(), "invalid ad_placed_on")
-        .when(
-            col("sold_on").isNotNull() &
-            to_timestamp(col("sold_on"), "dd-MM-yyyy HH:mm").isNull(),
-            "invalid sold_on"
-        )
-        .otherwise("other issue")  # Catch-all for unexpected issues
-    ).withColumn(
-        "insert_timestamp", current_timestamp()  # Track when error was recorded
-    )
